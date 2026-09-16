@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>Mayafx Print Cost</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f4f5f7;color:#15171a}
+.app{max-width:700px;margin:auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+h1{font-size:23px;margin:0}.sub,.hint,.muted{color:#6b7280;font-size:12px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{flex:1;padding:12px;border:0;border-radius:12px;background:#e5e7eb;font-weight:700}
+.tab.active{background:#111827;color:white}
+.card{background:white;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px #0000000d}
+h2{font-size:16px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+label{font-size:12px;color:#6b7280;display:block;margin-bottom:5px}
+input,select{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:10px;font-size:16px;background:white}
+button{cursor:pointer}
+.primary{width:100%;padding:13px;border:0;border-radius:11px;background:#111827;color:white;font-weight:700;font-size:15px}
+.secondary{padding:10px 13px;border:1px solid #d1d5db;border-radius:10px;background:white;font-weight:600}
+.result{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.resultBox{padding:14px;border-radius:13px;background:#f3f4f6}
+.resultBox strong{display:block;font-size:23px;margin-top:4px}
+.safe{background:#eef2ff}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px}
+.row:last-child{border:0}
+.project{padding:13px;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:9px}
+.projectTop{display:flex;justify-content:space-between;gap:8px}
+.projectName{font-weight:700}.projectMeta{font-size:12px;color:#6b7280;margin-top:4px}
+.actions{display:flex;gap:7px;margin-top:9px}
+.actions button{flex:1;padding:9px;border-radius:9px;border:1px solid #ddd;background:white}
+.switch{display:flex;align-items:center;gap:9px;margin:7px 0}
+.switch input{width:auto}
+.hidden{display:none}
+.note{padding:10px;border-radius:10px;background:#f3f4f6;font-size:12px;color:#4b5563;margin-top:10px}
+.machine{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin-top:10px}
+.machine h3{font-size:14px;margin:0 0 10px}
+@media(max-width:500px){.grid{grid-template-columns:1fr}.result{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="top">
+  <div><h1>Mayafx Print Cost</h1><div class="sub">3D printing calculator</div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="calc">Calculator</button>
+  <button class="tab" data-tab="projects">Projects</button>
+  <button class="tab" data-tab="settings">Settings</button>
+</div>
+
+<section id="calc">
+<div class="card">
+<h2>New calculation</h2>
+<div class="grid">
+<div><label>Project name</label><input id="name" placeholder="e.g. Beer Mug"></div>
+<div><label>Printer</label>
+<select id="printer">
+<option>Ender 3 V3 SE — ₹20,000</option>
+<option>Bambu Lab A1 — ₹30,000</option>
+<option>Bambu Lab A1 Mini — ₹16,000</option>
+</select></div>
+<div><label>Filament used (g)</label><input id="grams" type="number" min="0" value="100"></div>
+<div><label>Print time (hours)</label><input id="printHours" type="number" min="0" step=".01" value="5"></div>
+<div><label>Modeling time (hours)</label><input id="modelHours" type="number" min="0" step=".1" value="0"></div>
+<div><label>Setup/handling (hours)</label><input id="setupHours" type="number" min="0" step=".05" value=".1"></div>
+<div><label>Post-processing (hours)</label><input id="finishHours" type="number" min="0" step=".1" value="0"></div>
+<div><label>Outside painting (₹)</label><input id="paint" type="number" min="0" value="0"></div>
+</div>
+
+<div class="switch" style="margin-top:13px">
+<input id="perGram" type="checkbox">
+<label for="perGram" style="margin:0;color:#15171a;font-size:14px">Use per-gram pricing</label>
+</div>
+<div id="pgArea" class="grid hidden" style="margin-top:9px">
+<div><label>Rate (₹/gram)</label><input id="pgRate" type="number" min="0" step=".1" value="14"></div>
+<div><label>Per-gram selling price</label><input id="pgPrice" disabled></div>
+</div>
+</div>
+
+<div class="card"><h2>Cost breakdown</h2>
+<div class="row"><span>Filament</span><b id="filCost">₹0</b></div>
+<div class="row"><span>Wastage</span><b id="wasteCost">₹0</b></div>
+<div class="row"><span>Machine depreciation</span><b id="depCost">₹0</b></div>
+<div class="row"><span>Electricity</span><b id="elecCost">₹0</b></div>
+<div class="row"><span>Studio overhead</span><b id="overCost">₹0</b></div>
+<div class="row"><span>Modeling labour</span><b id="modelCost">₹0</b></div>
+<div class="row"><span>Setup/handling labour</span><b id="setupCost">₹0</b></div>
+<div class="row"><span>Post-processing labour</span><b id="finishCost">₹0</b></div>
+<div class="row"><span>Outside painting</span><b id="paintCost">₹0</b></div>
+<div class="row"><span>Packaging</span><b id="packCost">₹0</b></div>
+</div>
+
+<div class="card">
+<div class="result">
+<div class="resultBox"><div class="sub">Actual Cost</div><strong id="actual">₹0</strong></div>
+<div class="resultBox safe"><div class="sub">Safety Cost × 1.5</div><strong id="safe">₹0</strong></div>
+</div>
+<div id="pgResult" class="hint"></div>
+</div>
+
+<div class="card">
+<h2>Profit calculation</h2>
+<div class="grid">
+<div>
+<label>Selling price (₹)</label>
+<input id="sellingPrice" type="number" min="0" step="1" placeholder="Enter selling price">
+</div>
+<div>
+<label>Profit</label>
+<input id="profitAmount" disabled>
+</div>
+<div>
+<label>Profit margin</label>
+<input id="profitPercent" disabled>
+</div>
+</div>
+<div class="note">Profit = Selling Price − Actual Cost. This does not change the Actual Cost or Safety Cost.</div>
+</div>
+
+<button class="primary" id="save">Save Project</button>
+</section>
+
+<section id="projects" class="hidden">
+<div class="card"><h2>Saved projects</h2><div id="list"></div><div id="empty" class="sub">No projects saved yet.</div></div>
+</section>
+
+<section id="settings" class="hidden">
+<div class="card">
+<h2>Business settings</h2>
+<div class="grid">
+<div><label>PLA price (₹/kg)</label><input id="pla" type="number" value="675"></div>
+<div><label>Wastage (%)</label><input id="waste" type="number" value="5" step=".1"></div>
+<div><label>Studio rent/month (₹)</label><input id="rent" type="number" value="5000"></div>
+<div><label>Studio hours/month</label><input id="studioHours" type="number" value="360"></div>
+<div><label>Maintenance/month (₹)</label><input id="maint" type="number" value="100"></div>
+<div><label>Electricity price (₹/kWh)</label><input id="elec" type="number" value="6.20" step=".01"></div>
+<div><label>Packaging/product (₹)</label><input id="pack" type="number" value="20"></div>
+<div><label>Modeling (₹/hour)</label><input id="modelRate" type="number" value="250"></div>
+<div><label>Setup/handling (₹/hour)</label><input id="setupRate" type="number" value="100"></div>
+<div><label>Post-processing (₹/hour)</label><input id="finishRate" type="number" value="50"></div>
+</div>
+
+<div class="note">
+Goa electricity default: <b>₹6.20/kWh</b>, using the FY 2025–26 domestic rate for consumption above 400 units. Your actual bill can vary by tariff category/slab and FPPCA, so this remains editable.
+</div>
+
+<h2 style="margin-top:18px">Cost toggles</h2>
+<div class="switch">
+<input id="electricityEnabled" type="checkbox" checked>
+<label for="electricityEnabled" style="margin:0;color:#15171a;font-size:14px">Include electricity cost</label>
+</div>
+<div class="switch">
+<input id="wastageEnabled" type="checkbox" checked>
+<label for="wastageEnabled" style="margin:0;color:#15171a;font-size:14px">Include filament wastage</label>
+</div>
+<div class="switch">
+<input id="packagingEnabled" type="checkbox" checked>
+<label for="packagingEnabled" style="margin:0;color:#15171a;font-size:14px">Include packaging</label>
+</div>
+
+<h2 style="margin-top:18px">Machines</h2>
+
+<div class="machine">
+<h3>Creality Ender 3 V3 SE</h3>
+<div class="grid">
+<div><label>Purchase price (₹)</label><input id="enderCost" type="number" value="20000"></div>
+<div><label>Machine life (hours)</label><input id="enderLife" type="number" value="3000"></div>
+<div><label>Power draw (W)</label><input id="enderPower" type="number" value="100"></div>
+</div>
+</div>
+
+<div class="machine">
+<h3>Bambu Lab A1</h3>
+<div class="grid">
+<div><label>Purchase price (₹)</label><input id="a1Cost" type="number" value="30000"></div>
+<div><label>Machine life (hours)</label><input id="a1Life" type="number" value="2500"></div>
+<div><label>Power draw (W)</label><input id="a1Power" type="number" value="130"></div>
+</div>
+</div>
+
+<div class="machine">
+<h3>Bambu Lab A1 Mini</h3>
+<div class="grid">
+<div><label>Purchase price (₹)</label><input id="miniCost" type="number" value="16000"></div>
+<div><label>Machine life (hours)</label><input id="miniLife" type="number" value="3000"></div>
+<div><label>Power draw (W)</label><input id="miniPower" type="number" value="100"></div>
+</div>
+</div>
+
+<div class="note">
+Monthly hours for individual printers are intentionally removed because your printer usage varies. Studio rent is allocated separately using 360 studio hours/month.
+</div>
+</div>
+</section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const money=x=>'₹'+Math.round(x).toLocaleString('en-IN');
+
+const defaults={
+  pla:675,waste:5,rent:5000,studioHours:360,maint:100,elec:6.20,pack:20,
+  modelRate:250,setupRate:100,finishRate:50,
+  electricityEnabled:true,wastageEnabled:true,packagingEnabled:true,
+  enderCost:20000,enderLife:3000,enderPower:100,
+  a1Cost:30000,a1Life:2500,a1Power:130,
+  miniCost:16000,miniLife:3000,miniPower:100
+};
+
+let projects=JSON.parse(localStorage.getItem('mayafxProjects')||'[]');
+let settings=JSON.parse(localStorage.getItem('mayafxSettings')||'null')||{...defaults};
+
+// Migrate old settings so the new model is used.
+settings={...defaults,...settings};
+settings.rent=5000;
+settings.studioHours=360;
+if(!settings.elec || Number(settings.elec)===0) settings.elec=6.20;
+delete settings.enderHours;
+delete settings.a1Hours;
+delete settings.miniHours;
+delete settings.enderCostOld;
+delete settings.a1CostOld;
+delete settings.miniCostOld;
+
+function loadSettings(){
+  Object.keys(settings).forEach(k=>{
+    if($(k)){
+      if($(k).type==='checkbox') $(k).checked=!!settings[k];
+      else $(k).value=settings[k];
+    }
+  });
+}
+function saveSettings(){
+  Object.keys(settings).forEach(k=>{
+    if($(k)){
+      settings[k]=$(k).type==='checkbox'?$(k).checked:$(k).value;
+    }
+  });
+  localStorage.setItem('mayafxSettings',JSON.stringify(settings));
+}
+function num(id){return Math.max(0,parseFloat($(id).value)||0)}
+
+function machine(){
+  const p=$('printer').value;
+  if(p.includes('Ender')) return {cost:num('enderCost'),life:num('enderLife'),power:num('enderPower')};
+  if(p.includes('A1 Mini')) return {cost:num('miniCost'),life:num('miniLife'),power:num('miniPower')};
+  return {cost:num('a1Cost'),life:num('a1Life'),power:num('a1Power')};
+}
+
+function calc(){
+  saveSettings();
+
+  const m=machine();
+  const g=num('grams'), ph=num('printHours');
+
+  const fil=g*num('pla')/1000;
+  const waste=settings.wastageEnabled ? fil*num('waste')/100 : 0;
+  const dep=m.life ? ph*(m.cost/m.life) : 0;
+  const elec=settings.electricityEnabled ? ph*(m.power/1000)*num('elec') : 0;
+
+  const studioHours=Math.max(1,num('studioHours'));
+  const over=ph*(num('rent')+num('maint'))/studioHours;
+
+  const model=num('modelHours')*num('modelRate');
+  const setup=num('setupHours')*num('setupRate');
+  const finish=num('finishHours')*num('finishRate');
+  const paint=num('paint');
+  const pack=settings.packagingEnabled ? num('pack') : 0;
+
+  const actual=fil+waste+dep+elec+over+model+setup+finish+paint+pack;
+  const safe=actual*1.5;
+
+  [['filCost',fil],['wasteCost',waste],['depCost',dep],['elecCost',elec],
+   ['overCost',over],['modelCost',model],['setupCost',setup],['finishCost',finish],
+   ['paintCost',paint],['packCost',pack],['actual',actual],['safe',safe]]
+  .forEach(([id,v])=>$(id).textContent=money(v));
+
+  const pg=$('perGram').checked?g*num('pgRate'):0;
+  const selling=num('sellingPrice');
+  const profit=selling-actual;
+  const margin=selling>0?(profit/selling)*100:0;
+  $('profitAmount').value=money(profit);
+  $('profitPercent').value=selling>0?margin.toFixed(1)+'%':'—';
+  $('pgArea').classList.toggle('hidden',!$('perGram').checked);
+  $('pgPrice').value=money(pg);
+  $('pgResult').textContent=$('perGram').checked
+    ? 'Per-gram price: '+money(pg)+' (separate from cost calculation)'
+    : '';
+
+  return {actual,safe,pg,settingsSnapshot:JSON.parse(JSON.stringify(settings))};
+}
+
+document.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',calc));
+$('perGram').addEventListener('change',calc);
+
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  ['calc','projects','settings'].forEach(x=>$(x).classList.toggle('hidden',x!==b.dataset.tab));
+  if(b.dataset.tab==='projects') render();
+}));
+
+$('save').addEventListener('click',()=>{
+  const c=calc();
+  const name=$('name').value.trim()||'Untitled Project';
+
+  const inputKeys=['printer','grams','printHours','modelHours','setupHours','finishHours','paint','perGram','pgRate','sellingPrice','name'];
+  const inputs=Object.fromEntries(inputKeys.map(k=>[k,$(k).value]));
+
+  projects.unshift({
+    id:Date.now(),
+    name,
+    printer:$('printer').value,
+    grams:num('grams'),
+    printHours:num('printHours'),
+    actual:c.actual,
+    safe:c.safe,
+    pg:c.pg,
+    saved:new Date().toLocaleString(),
+    inputs,
+    settingsSnapshot:c.settingsSnapshot
+  });
+
+  localStorage.setItem('mayafxProjects',JSON.stringify(projects));
+  alert('Project saved');
+});
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function render(){
+  const list=$('list');
+  list.innerHTML='';
+  $('empty').style.display=projects.length?'none':'block';
+
+  projects.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='project';
+    d.innerHTML=
+      '<div class="projectTop"><span class="projectName">'+esc(p.name)+'</span><b>'+money(p.actual)+'</b></div>'+
+      '<div class="projectMeta">'+esc(p.printer)+' • '+p.grams+'g • '+p.printHours+'h<br>'+
+      'Safety: '+money(p.safe)+(p.pg?' • Per-gram: '+money(p.pg):'')+'<br>'+esc(p.saved)+'</div>'+
+      '<div class="actions"><button data-open="'+p.id+'">Open</button><button data-del="'+p.id+'">Delete</button></div>';
+    list.appendChild(d);
+  });
+
+  list.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openProject(+b.dataset.open));
+  list.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    projects=projects.filter(p=>p.id!==+b.dataset.del);
+    localStorage.setItem('mayafxProjects',JSON.stringify(projects));
+    render();
+  });
+}
+
+function openProject(id){
+  const p=projects.find(x=>x.id===id);
+  if(!p)return;
+  Object.entries(p.inputs||{}).forEach(([k,v])=>{if($(k))$(k).value=v});
+  document.querySelector('[data-tab="calc"]').click();
+  calc();
+}
+
+loadSettings();
+calc();
+</script>
+</body>
+</html>
