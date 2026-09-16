@@ -103,6 +103,26 @@ button{cursor:pointer}
 </div>
 <div id="pgResult" class="hint"></div>
 </div>
+
+<div class="card">
+<h2>Profit calculation</h2>
+<div class="grid">
+<div>
+<label>Selling price (₹)</label>
+<input id="sellingPrice" type="number" min="0" step="1" placeholder="Enter selling price">
+</div>
+<div>
+<label>Profit</label>
+<input id="profitAmount" disabled>
+</div>
+<div>
+<label>Profit margin</label>
+<input id="profitPercent" disabled>
+</div>
+</div>
+<div class="note">Profit = Selling Price − Actual Cost. This does not change the Actual Cost or Safety Cost.</div>
+</div>
+
 <button class="primary" id="save">Save Project</button>
 </section>
 
@@ -262,6 +282,11 @@ function calc(){
   .forEach(([id,v])=>$(id).textContent=money(v));
 
   const pg=$('perGram').checked?g*num('pgRate'):0;
+  const selling=num('sellingPrice');
+  const profit=selling-actual;
+  const margin=selling>0?(profit/selling)*100:0;
+  $('profitAmount').value=money(profit);
+  $('profitPercent').value=selling>0?margin.toFixed(1)+'%':'—';
   $('pgArea').classList.toggle('hidden',!$('perGram').checked);
   $('pgPrice').value=money(pg);
   $('pgResult').textContent=$('perGram').checked
@@ -285,7 +310,7 @@ $('save').addEventListener('click',()=>{
   const c=calc();
   const name=$('name').value.trim()||'Untitled Project';
 
-  const inputKeys=['printer','grams','printHours','modelHours','setupHours','finishHours','paint','perGram','pgRate','name'];
+  const inputKeys=['printer','grams','printHours','modelHours','setupHours','finishHours','paint','perGram','pgRate','sellingPrice','name'];
   const inputs=Object.fromEntries(inputKeys.map(k=>[k,$(k).value]));
 
   projects.unshift({
